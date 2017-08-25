@@ -30,6 +30,10 @@
 
 #define CAR_DEF_FORWARD_TICK 500
 
+#define OBS_NONE 0
+#define OBS_STATIC 1
+#define OBS_DYNAMIC 2
+
 int g_car_dir = CAR_DIR_ST;
 
 static unsigned char SoftPWM[] = {L298N_ENA, L298N_ENB};
@@ -47,7 +51,7 @@ void CheckCarDir();
 int CalcDir(const int h, const int v);
 bool LineTracing();
 bool ReverseLineTracing();
-bool MSP(std::list<Dijikstra::Vertex>& path, const int cur, const int next);
+int MSP(std::list<Dijikstra::Vertex>& path, const int cur, const int next);
 void PathFindLoop();
 
 L298N g_driver(L298N_ENA, L298N_IN1, L298N_IN2, L298N_ENB, L298N_IN3, L298N_IN4);
@@ -176,11 +180,27 @@ void Cornering(int rot, int type = CAR_DIR_RF)
     }
 }
 
-bool MSP(std::list<Dijikstra::Vertex>& path, const int cur, const int next)
+
+int MSP(std::list<Dijikstra::Vertex>& path, const int cur, const int next)
 {
   if (checkUltraSonick())
     {
-      printf("Obstacle founded. research\n");
+      printf("Obstacle founded. wait 5 sec\n");
+
+      g_timer.Reset();
+      while(g_timer.Get() < 5000)
+	{
+	  g_driver.stop();
+	  delay(500);
+
+	  if (checkUltraSonick() == false)
+	    {
+	      while(LineTracing()) { delay(10); }
+	      return OBS_DYNAMIC;
+	    }
+	}
+
+      printf("this is static obstacle.\n");
       printf("reverse linetracing...\n");
 
       while (ReverseLineTracing()) { delay(10); }
@@ -200,10 +220,10 @@ bool MSP(std::list<Dijikstra::Vertex>& path, const int cur, const int next)
       path = std::list<Dijikstra::Vertex>(g_path.begin(), g_path.end());
       path.pop_front();
 
-      return true;
+      return OBS_STATIC;
     }
 
-  return false;
+  return OBS_NONE;
 }
 
 void Loop()
@@ -258,18 +278,17 @@ void Loop()
     printf("tracing...\n");
     //    while(LineTracing()) {delay(10);}
 
-    bool blocked = false;
+    int obs = false;
     while(LineTracing())
       {
-	blocked = MSP(path, cur, id);
-	if (blocked)
+	obs = MSP(path, cur, id);
+	if (obs != OBS_NONE)
 	  break;
-	    
 	
 	delay(10);
       }
 
-    if (blocked)
+    if (obs == OBS_STATIC)
       continue;
     
     printf("trc end\n");
