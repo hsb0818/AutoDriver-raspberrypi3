@@ -57,6 +57,7 @@ public:
 
 private:
 	void Init(const int vertex_count, const int edge_count);
+	void Clear();
 	bool Relax(int& org_val, const int& new_val);
 	
 private:

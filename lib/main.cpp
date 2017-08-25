@@ -28,8 +28,6 @@
 #define CAR_DIR_RF 3
 #define CAR_DIR_ST 4
 
-#define CAR_DEF_FORWARD_TICK 500
-
 int g_car_dir = CAR_DIR_ST;
 
 static unsigned char SoftPWM[] = {L298N_ENA, L298N_ENB};
@@ -46,8 +44,6 @@ bool checkUltraSonick();
 void CheckCarDir();
 int CalcDir(const int h, const int v);
 bool LineTracing();
-bool ReverseLineTracing();
-bool MSP(std::list<Dijikstra::Vertex>& path, const int cur, const int next);
 void PathFindLoop();
 
 L298N g_driver(L298N_ENA, L298N_IN1, L298N_IN2, L298N_ENB, L298N_IN3, L298N_IN4);
@@ -115,11 +111,21 @@ void Load()
 	}
     }
   
+  /*
+  spf.RegistVertexToMap(1, 2, false);
+  spf.RegistVertexToMap(1, 6, false);
+  spf.RegistVertexToMap(2, 3, false);
+  spf.RegistVertexToMap(2, 5, false);  
+  spf.RegistVertexToMap(3, 4, false);
+  spf.RegistVertexToMap(4, 5, false);
+  spf.RegistVertexToMap(5, 6, false);
+  */
+  //  spf.RemoveEdge(2, 3);  
+
   printf("Edges Loaded..\n");
 
   printf("Start : ");
   scanf("%d", &start);
-
   spf.Run(start, -1);
 
   printf("Dest : ");
@@ -157,10 +163,18 @@ void Cornering(int rot, int type = CAR_DIR_RF)
   g_timer.Reset();
   while(g_timer.Get() < rot)
     {
-      if (type == CAR_DIR_RF)
-	g_driver.goRight();
-      else
-	g_driver.goLeft();
+      //      CheckCarDir();
+      //      if (g_car_d == CAR_DIR_ST)
+	{
+	  if (type == CAR_DIR_RF)
+	    g_driver.goRight();
+	  else
+	    g_driver.goLeft();
+	}/*
+      else {
+	g_driver.stop();
+	return;
+      }*/
     }
   	
   g_timer.Reset();
@@ -176,43 +190,34 @@ void Cornering(int rot, int type = CAR_DIR_RF)
     }
 }
 
-bool MSP(std::list<Dijikstra::Vertex>& path, const int cur, const int next)
-{
-  if (checkUltraSonick())
-    {
-      printf("Obstacle founded. research\n");
-      printf("reverse linetracing...\n");
-
-      while (ReverseLineTracing()) { delay(10); }
-
-      g_driver.goBack();
-      delay(100);
-	     
-      printf("reverse enn\n");
-
-      spf.RemoveEdge(cur, next);
-      spf.Run(cur, dest);
-      g_path = spf.GetShortestPath(dest);
-      for (int i=0; i<g_path.size(); i++)
-	printf("%d -> ", g_path[i].dest_id);
-      printf("\n");
-      
-      path = std::list<Dijikstra::Vertex>(g_path.begin(), g_path.end());
-      path.pop_front();
-
-      return true;
-    }
-
-  return false;
-}
-
 void Loop()
 {
   printf("start!\n");
+/*
+  while(true) {
+  const bool iline_l = (digitalRead(ILINE_L) == 1) ? true : false;
+  const bool iline_c = (digitalRead(ILINE_C) == 1) ? true : false;
+  const bool iline_r = (digitalRead(ILINE_R) == 1) ? true : false;
+
+  printf("iline - %d %d %d\n", iline_l, iline_c, iline_r);
+    delay(20);
+  }
+*/
 
   int rot = 0;
-  printf("rot time : ");
   scanf("%d", &rot);
+/*
+  while (true)
+  {
+    if (checkUltraSonick())
+      break;
+
+    if (LineTracing() == false)
+      {
+	Cornering(rot);
+      }
+  }
+*/
  
   std::list<Dijikstra::Vertex> path(g_path.begin(), g_path.end());
   if (path.size() == 0)
@@ -224,6 +229,9 @@ void Loop()
 
   while (path.size() > 0)
   {
+    if (checkUltraSonick())
+      break;
+
     const int id = path.front().dest_id;
     const Dijikstra::VertexPos pos = spf.GetVertexPos(id);
     path.pop_front();
@@ -234,11 +242,10 @@ void Loop()
       case CAR_DIR_FW:
 	printf("fw\n");
 	g_timer.Reset();
-	while(g_timer.Get() < CAR_DEF_FORWARD_TICK)
+	while(g_timer.Get() < 500)
 	  {
 	    g_driver.goForward();
 	  }
-
 	break;
       case CAR_DIR_LF:
 	printf("lf\n");
@@ -254,26 +261,11 @@ void Loop()
 	delay(1000);
 	break;
       }
-    
-    printf("tracing...\n");
-    //    while(LineTracing()) {delay(10);}
 
-    bool blocked = false;
-    while(LineTracing())
-      {
-	blocked = MSP(path, cur, id);
-	if (blocked)
-	  break;
-	    
-	
-	delay(10);
-      }
-
-    if (blocked)
-      continue;
-    
+    printf("trc\n");
+    while(LineTracing()) { delay(10); }
     printf("trc end\n");
-    
+
     cur = id;
     cur_pos = pos;
   }
@@ -379,28 +371,6 @@ bool LineTracing()
     g_driver.stop();
     return false;
   }
-
-  return true;
-}
-
-bool ReverseLineTracing()
-{
-  CheckCarDir();
-  switch(g_car_dir)
-    {
-    case CAR_DIR_FW:
-      g_driver.goBack();
-      break;
-    case CAR_DIR_RF:
-      g_driver.goRight();
-      break;
-    case CAR_DIR_LF:
-      g_driver.goLeft();
-      break;
-    case CAR_DIR_ST:
-      g_driver.stop();
-      return false;
-    }
 
   return true;
 }

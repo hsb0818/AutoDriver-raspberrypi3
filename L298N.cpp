@@ -48,7 +48,7 @@ void L298N::goBack(int nSpeed)
 
   digitalWrite(this->en1Pin, LOW);
   digitalWrite(this->en2Pin, HIGH);
-  softPwmWrite(this->enAPin, this->speed);
+  softPwmWrite(this->enAPin, this->speed + 14);
   
   digitalWrite(this->en3Pin, LOW);
   digitalWrite(this->en4Pin, HIGH);

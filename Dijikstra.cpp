@@ -40,8 +40,11 @@ void Dijikstra::RemoveEdge(const int src_id, const int dest_id)
 	break;
     }
   
+  printf("%d edge removed!\n", m_map[src_id][i]);
   m_map[src_id].erase(m_map[src_id].begin() + i);
-  printf("%d edges removed!\n", i);
+
+  for (int j=0; j<m_map[src_id].size(); j++)
+    printf("---%d edges left\n", m_map[src_id][j]);
 }
 
 bool Dijikstra::Relax(int& org_val, const int& new_val)
@@ -55,8 +58,26 @@ bool Dijikstra::Relax(int& org_val, const int& new_val)
 	return false;
 }
 
+void Dijikstra::Clear()
+{
+  m_prev_path = vector<Vertex>();
+  m_prev_path.resize(m_visit.size());
+
+    
+  for (int i=0; i<m_visit.size(); i++)
+    {
+      m_visit[i] = 0;
+    }
+	
+	
+  for (int i = 0; i < m_dist.size(); i++)
+    m_dist[i] = INF;
+}
+
 int Dijikstra::Run(const int start, const int dest)
 {
+  Clear();
+  
 	m_start = start;
 	m_dist[m_start] = 0;
 	m_pq.push(Vertex(m_start, 0));
