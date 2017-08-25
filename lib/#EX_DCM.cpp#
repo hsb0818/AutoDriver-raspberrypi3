@@ -1,0 +1,122 @@
+// EX_DCM.c
+
+#include <wiringPi.h>
+#include <wiringSerial.h>
+#include <piFace.h>
+#include <softPwm.h>
+
+// PiFace Digital 2
+#define PIFACE_BASE     200
+
+// OUTPUT
+#define RUN_LED         (PIFACE_BASE)
+#define ULTRASONIC_TRIG (PIFACE_BASE+1)
+#define L298N_ENA       (PIFACE_BASE+2)
+#define L298N_IN1       (PIFACE_BASE+3)
+#define L298N_IN2       (PIFACE_BASE+4)
+#define L298N_IN3       (PIFACE_BASE+5)
+#define L298N_IN4       (PIFACE_BASE+6)
+#define L298N_ENB       (PIFACE_BASE+7)
+
+// INPUT
+#define EXIT_SW         (PIFACE_BASE)
+#define ULTRASONIC_ECHO (PIFACE_BASE+4)
+#define PD_LEFT         (PIFACE_BASE+5)
+#define PD_CENTER       (PIFACE_BASE+6)
+#define PD_RIGHT        (PIFACE_BASE+7)
+
+//- 속도 설정 ------------------------------------------------
+#define PWM_PERIOD      100
+#define PWM_STOP        100
+#define PWM_MAX         0
+
+// 방향 전환 전역 변수
+// 1: 정방향 2: 좌회전 3: 우회전 4: 후진 0: 정지
+int direction = 1;
+int g_nSpeed = 50;
+
+void setup();
+void loop();
+
+void setup()
+{
+    int pin;
+    
+    // wiringPi
+    wiringPiSetupGpio();
+    
+    // PiFace
+    piFaceSetup(PIFACE_BASE);
+    
+    // L298N
+    // Enable internal pull-ups & start with all off
+
+    for (pin = 0 ; pin < 8 ; ++pin)
+    {
+        pullUpDnControl (PIFACE_BASE + pin, PUD_UP) ;
+        digitalWrite    (PIFACE_BASE + pin, 0) ;
+    }
+    softPwmCreate(L298N_ENA, PWM_STOP, PWM_PERIOD);
+    softPwmCreate(L298N_ENB, PWM_STOP, PWM_PERIOD);        
+}
+
+void loop()
+{
+    if(direction == 1) // 정방향
+    {
+        digitalWrite(L298N_IN1, HIGH);
+        digitalWrite(L298N_IN2, LOW);
+        softPwmWrite(L298N_ENA, g_nSpeed);
+        digitalWrite(L298N_IN3, HIGH);
+        digitalWrite(L298N_IN4, LOW);
+        softPwmWrite(L298N_ENB, g_nSpeed);  
+    }
+    else if(direction == 4) // 후진
+    {
+        digitalWrite(L298N_IN1, LOW);
+        digitalWrite(L298N_IN2, HIGH);
+        softPwmWrite(L298N_ENA, g_nSpeed);
+        digitalWrite(L298N_IN3, LOW);
+        digitalWrite(L298N_IN4, HIGH);
+        softPwmWrite(L298N_ENB, g_nSpeed);
+    }
+    else if(direction == 2) // 좌회전
+    {
+        digitalWrite(L298N_IN1, LOW);
+        digitalWrite(L298N_IN2, HIGH);
+        softPwmWrite(L298N_ENA, g_nSpeed);
+        digitalWrite(L298N_IN3, HIGH);
+        digitalWrite(L298N_IN4, LOW);
+        softPwmWrite(L298N_ENB, g_nSpeed);
+    }
+    else if(direction == 3) // 우회전
+    {
+        digitalWrite(L298N_IN1, HIGH);
+        digitalWrite(L298N_IN2, LOW);
+        softPwmWrite(L298N_ENA, g_nSpeed);
+        digitalWrite(L298N_IN3, LOW);
+        digitalWrite(L298N_IN4, HIGH);
+        softPwmWrite(L298N_ENB, g_nSpeed);   
+    }
+    else if(direction == 0) // 정지
+    {
+        softPwmWrite(L298N_ENA, PWM_STOP);
+        softPwmWrite(L298N_ENB, PWM_STOP); 
+    }
+    
+    delay(1000);
+    direction++;
+    if(direction > 4) direction = 0;
+}
+    
+int main ()
+{
+    setup();
+    
+    while(1)
+    {
+        loop();
+    }
+
+    return 0 ;
+}

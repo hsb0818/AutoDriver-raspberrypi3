@@ -1,0 +1,70 @@
+#pragma once
+
+#include <iostream>
+#include <vector>
+#include <map>
+#include <queue>
+#include <deque>
+
+using namespace std;
+
+class Dijikstra
+{
+public:
+	static const int INF = 99999999;
+
+public:
+	struct Vertex
+	{
+		int dest_id;
+		int dist;
+
+		Vertex() { }
+	Vertex(const int _dest_id, const int _dist)
+			: dest_id(_dest_id)
+			, dist(_dist)
+		{
+		}
+	};
+
+	struct VertexPos
+	{
+	  int x;
+	  int y;
+	  VertexPos() {}
+	  VertexPos(const int _x, const int _y)
+	  : x(_x)
+	  , y(_y)
+	  {
+	  }
+	    
+	};
+
+	struct ASC
+	{
+		bool operator () (const Vertex& v1, const Vertex& v2) { return v1.dist > v2.dist; }
+	};
+
+public:
+	Dijikstra(const int vertex_count, const int edge_count);
+	void RegistVertexToMap(const int src_id, const int dest_id, const int dist, const bool duplex = true);
+	void RegistVertexPosToMap(const int id, const float x, const float y);
+	VertexPos GetVertexPos(const int id) { return m_posmap[id]; }
+	void RemoveEdge(const int src_id, const int dest_id);
+	int Run(const int start, const int dest);
+	vector<Vertex> GetShortestPath(const int from);
+	const vector<int>& GetDistQueue() { return m_dist; }
+
+private:
+	void Init(const int vertex_count, const int edge_count);
+	bool Relax(int& org_val, const int& new_val);
+	
+private:
+	int m_start;
+	priority_queue<Vertex, vector<Vertex>, ASC> m_pq;
+	vector<vector<Vertex> > m_map;
+	vector<VertexPos> m_posmap;
+	vector<int> m_visit;
+	vector<int> m_dist;
+	vector<Vertex> m_prev_path;
+};

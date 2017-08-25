@@ -1,0 +1,98 @@
+/**************************************************
+ * RNT-NTRD  SHK
+ * 2015. 3. 05 Ver.01 
+ **************************************************/
+
+#include "L298N.h"
+
+#include <wiringPi.h>
+#include <wiringSerial.h>
+#include <piFace.h>
+#include <softPwm.h>
+
+L298N::L298N(int enAPin, int en1Pin, int en2Pin, int enBPin, int en3Pin, int en4Pin)
+{
+	this->enAPin = enAPin;
+	this->en1Pin = en1Pin;
+	this->en2Pin = en2Pin;
+	this->enBPin = enBPin;
+	this->en3Pin = en3Pin;
+	this->en4Pin = en4Pin;
+	this->speed = DEF_SPEED;
+}
+
+void L298N::begin(void)
+{
+    softPwmCreate(this->enAPin, PWM_STOP, PWM_PERIOD);
+    softPwmCreate(this->enBPin, PWM_STOP, PWM_PERIOD);        
+}
+
+
+void L298N::goForward(int nSpeed)
+{
+    this->speed =  nSpeed;
+    digitalWrite(this->en1Pin, HIGH);
+    digitalWrite(this->en2Pin, LOW);
+    softPwmWrite(this->enAPin, this->speed);
+
+    digitalWrite(this->en3Pin, HIGH);
+    digitalWrite(this->en4Pin, LOW);
+    softPwmWrite(this->enBPin, this->speed);
+}
+
+
+void L298N::goBack(int nSpeed)
+{
+	    this->speed = nSpeed;
+		digitalWrite(this->en1Pin, LOW);
+		digitalWrite(this->en2Pin, HIGH);
+		softPwmWrite(this->enAPin, this->speed);
+
+		digitalWrite(this->en3Pin, LOW);
+		digitalWrite(this->en4Pin, HIGH);
+		softPwmWrite(this->enBPin, this->speed);	
+}
+
+void L298N::goLeft(void)
+{
+		digitalWrite(this->en1Pin, LOW);
+		digitalWrite(this->en2Pin, HIGH);
+		softPwmWrite(this->enAPin, NOR_SPEED);
+
+		digitalWrite(this->en3Pin, HIGH);
+		digitalWrite(this->en4Pin, LOW);
+		softPwmWrite(this->enBPin, MAX_SPEED);
+}
+
+void L298N::goRight(void)
+{
+		digitalWrite(this->en1Pin, HIGH);
+		digitalWrite(this->en2Pin, LOW);
+		softPwmWrite(this->enAPin, MAX_SPEED);
+
+		digitalWrite(this->en3Pin, LOW);
+		digitalWrite(this->en4Pin, HIGH);
+		softPwmWrite(this->enBPin, NOR_SPEED);
+}
+
+
+void L298N::stop(void)
+{
+    softPwmWrite(this->enAPin, PWM_STOP);
+    softPwmWrite(this->enBPin, PWM_STOP);  
+}
+
+
+void L298N::set
+Speed(int speed)
+{
+    this->speed = speed;
+}
+
+
+int L298N::getSpeed(void)
+{
+	return this->speed;
+}
+
+
