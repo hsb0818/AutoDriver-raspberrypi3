@@ -21,8 +21,8 @@
 
 #define DEF_SPEED	13
 #define MAX_SPEED       100
-#define ROT_SPEED       40
-#define NOR_SPEED       30
+#define ROT_SPEED       60
+#define NOR_SPEED       40
 #define MIN_SPEED       13
 
 #define PWM_PERIOD      100

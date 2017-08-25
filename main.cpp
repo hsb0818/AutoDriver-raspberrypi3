@@ -49,13 +49,14 @@ void PathFindLoop();
 L298N g_driver(L298N_ENA, L298N_IN1, L298N_IN2, L298N_ENB, L298N_IN3, L298N_IN4);
 Ultrasonic g_ultra(ULTRASONIC_TRIG, ULTRASONIC_ECHO);
 
-const int VC = 10;
-const int EC = 10;
+const int VC = 64;
+const int EC = 64;
 int start = 0;
 int dest = 0;
 
 Dijikstra spf(VC, EC);
 vector<Dijikstra::Vertex> g_path;
+Dijikstra::VertexPos g_curdir(0, 1);
 
 struct Timer
 {
@@ -93,13 +94,24 @@ int main()
 
 void Load()
 {
-  spf.RegistVertexPosToMap(1, 0, 0);
-  spf.RegistVertexPosToMap(2, 1, 0);
-  spf.RegistVertexPosToMap(3, 2, 0);
-  spf.RegistVertexPosToMap(4, 2, 1);
-  spf.RegistVertexPosToMap(5, 1, 1);
-  spf.RegistVertexPosToMap(6, 0, 1);
+  for (int y=0; y<5; y++)
+    {
+      for (int x=0; x<4; x++)
+	{
+	  spf.RegistVertexPosToMap(y*4 + x, x, y);
+	}
+    }
 
+  for (int y=0; y<4; y++)
+    {
+      for (int x=0; x<3; x++)
+	{
+	  spf.RegistVertexToMap(y*4 + x, (y+1)*4 + x, true);
+	  spf.RegistVertexToMap(y*4 + x, y*4 + (x+1), true);
+	}
+    }
+  
+  /*
   spf.RegistVertexToMap(1, 2, false);
   spf.RegistVertexToMap(1, 6, false);
   spf.RegistVertexToMap(2, 3, false);
@@ -107,10 +119,9 @@ void Load()
   spf.RegistVertexToMap(3, 4, false);
   spf.RegistVertexToMap(4, 5, false);
   spf.RegistVertexToMap(5, 6, false);
-
+  */
   //  spf.RemoveEdge(2, 3);  
 
-  printf("1, 2, 3, 4, 5 ");
   printf("Edges Loaded..\n");
 
   printf("Start : ");
@@ -152,18 +163,18 @@ void Cornering(int rot, int type = CAR_DIR_RF)
   g_timer.Reset();
   while(g_timer.Get() < rot)
     {
-      CheckCarDir();
-      if (g_car_dir == CAR_DIR_ST)
+      //      CheckCarDir();
+      //      if (g_car_d == CAR_DIR_ST)
 	{
 	  if (type == CAR_DIR_RF)
 	    g_driver.goRight();
 	  else
 	    g_driver.goLeft();
-	}
+	}/*
       else {
 	g_driver.stop();
 	return;
-      }
+      }*/
     }
   	
   g_timer.Reset();
@@ -207,7 +218,7 @@ void Loop()
       }
   }
 */
-  
+ 
   std::list<Dijikstra::Vertex> path(g_path.begin(), g_path.end());
   if (path.size() == 0)
     return;
@@ -277,19 +288,46 @@ bool checkUltraSonick()
 
 int CalcDir(const int h, const int v)
 {
-  printf("h:%d v:%d\n", h, v);
   if (h == 0 && v == 0)
     return CAR_DIR_ST;
-  else if (h > 0 && v == 0)
-    return CAR_DIR_RF;
-  else if (h < 0 && v == 0)
-    return CAR_DIR_LF;
-  else if (h == 0 && v < 0)
-    return CAR_DIR_BK;
-  else if (h == 0 && v > 0)
+  else if (g_curdir.x == h &&
+	   g_curdir.y == v)
     return CAR_DIR_FW;
 
-  return CAR_DIR_ST;
+  int ret = CAR_DIR_ST;
+  if (g_curdir.x > 0)
+    {
+      if (v > 0)
+	ret = CAR_DIR_LF;
+      else
+	ret = CAR_DIR_RF;
+    }
+  else if (g_curdir.x < 0)
+    {
+      if (v > 0)
+	ret = CAR_DIR_RF;
+      else
+	ret = CAR_DIR_LF;
+    }
+  else if (g_curdir.y > 0)
+    {
+      if (h > 0)
+	ret = CAR_DIR_RF;
+      else
+	ret = CAR_DIR_LF;
+    }
+  else if (g_curdir.y < 0)
+    {
+      if (h > 0)
+	ret = CAR_DIR_LF;
+      else
+	ret = CAR_DIR_RF;
+    }
+  
+  g_curdir.x = h;
+  g_curdir.y = v;
+    
+  return ret;
 }
 
 void CheckCarDir()
